@@ -103,15 +103,21 @@ Func _RunECTTool()
        Exit
     EndIf
     WinActivate($hWnd)
-    ; ControlSend($hWnd, "", "Button11", "{SPACE}")
+
+    Send("!c")
     Send("!u")
 
     $WS = 1
     While $WS
         If WinExists("Exec Specified Function") Then
             $WS = 0
+        ElseIf WinExists("ECT", "No driver will") Then
+            ControlSend("ECT", "No driver will", "Button1", "{SPACE}")
+            Send("!c")
+            Send("!u")
         EndIf
     WEnd
+
     WinActivate("Exec Specified Function")
     ControlSend("Exec Specified Function", "", "Button7", "{SPACE}")
 
@@ -143,6 +149,18 @@ Func _RunECTTool()
             EndIf
         WEnd
         Send("!fx")
+
+        $WS = 1
+        While $WS
+            $hWnd = _WinGetHandleByPnmAndCls("ECT.exe")
+            If WinExists($hWnd) Then
+                If WinExists("ECT", "Current project") Then
+                    Send("!y")
+                EndIf
+            Else
+                $WS = 0
+            EndIf
+        WEnd
     EndIf
 EndFunc
 
