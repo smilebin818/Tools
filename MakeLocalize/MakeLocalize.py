@@ -8,19 +8,60 @@ import os, re, time, shutil, distutils.dir_util
 import win32process, win32event
 import win32api
 
+import tkMessageBox
+
+from Tkinter import *
+
+_author_  = "YanBin"
+_version_ = "ver1.0"
+
 ################################
 # 输入一下信息
 # · ECT文件名名称
+# · ECT文件名称 （例：路径后面的名称[F:\IT5Color_v4.2_FVT-1Re_ECT\C759_11\IT5Color_v4.2.ECT]）
 # · 代码路径（Model）
 # · 日本给的localize路径
+# 读这儿： 第一次执行会报错， 只需要再次执行就OK了
 ################################
-ECT_folder = 'IT5Color_v4.2_FVT-1Re_ECT'
-ECT_file = 'IT5Color_v4.2.ECT'
-src_model_folder = ur'F:\WinDrv_Src\IT5_Color_v4.2\KMSrc_2.06.73\Driver\Model'
-localize_from_km = ur'F:\Localize_Base\20171117'
+# localize_from_km = ur'F:\Localize_Base\20171206'
+# src_model_folder = ur'F:\WinDrv_Src\IT5_Color_v4.2\KMSrc_2.06.73\Driver\Model'
+# ECT_folder = 'IT5Color_v4.2_FVT-1Re_ECT'
+# ECT_file = 'IT5Color_v4.2.ECT'
+ECT_folder = ''
+ECT_file = ''
+src_model_folder = ''
+localize_from_km = ''
+SCCopy_folder = ''
 
-ECT_folder = os.path.join(os.getcwd(), ECT_folder)
-SCCopy_folder = os.path.join(ECT_folder, 'SCCopy')
+################################
+# 读这儿： 第一次执行会报错， 只需要再次执行就OK了
+################################
+
+"""
+                   _ooOoo_ 
+                  o8888888o 
+                  88" . "88 
+                  (| -_- |) 
+                  O\  =  /O 
+               ____/`---'\____ 
+             .'  \\|     |//  `. 
+            /  \\|||  :  |||//  \ 
+           /  _||||| -:- |||||-  \ 
+           |   | \\\  -  /// |   | 
+           | \_|  ''\---/''  |   | 
+           \  .-\__  `-`  ___/-. / 
+         ___`. .'  /--.--\  `. . __ 
+      ."" '<  `.___\_<|>_/___.'  >'"". 
+     | | :  `- \`.;`\ _ /`;.`/ - ` : | | 
+     \  \ `-.   \_ __\ /__ _/   .-` /  / 
+======`-.____`-.___\_____/___.-`____.-'====== 
+                   `=---=' 
+"""
+################################
+# 以下代码不可修改
+################################
+# ECT_folder = os.path.join(os.getcwd(), ECT_folder)
+# SCCopy_folder = os.path.join(ECT_folder, 'SCCopy')
 
 own_folder = ''
 gen_folder = ''
@@ -286,12 +327,87 @@ def run_exec_Info_file():
                         shutil.rmtree(os.path.join(ECT_folder, own_folder + 'PKI', 'INI', '_Log'))
                     run_ect_tool(os.path.join(ECT_folder, own_folder + 'PKI', ECT_file) + ' 1')
 
+def reset():
+    e1_entry_var.set('')
+    e2_entry_var.set('')
+    e3_entry_var.set('')
+    e4_entry_var.set('')
+
+def getvalueforgui():
+    global ECT_folder
+    global ECT_file
+    global src_model_folder
+    global localize_from_km
+    global SCCopy_folder
+
+    localize_from_km = e1.get()
+    src_model_folder = e2.get()
+    ECT_folder = os.path.join(os.getcwd(), e3.get())
+    ECT_file = e4.get()
+
+    SCCopy_folder = os.path.join(ECT_folder, 'SCCopy')
+
+    button2['state'] = DISABLED
+
+    if ECT_folder == '' or ECT_file == '' or src_model_folder == '' or localize_from_km == '':
+        tkMessageBox.showinfo("warning","每项信息都必须正确填写！不能为空")
+        button2['state'] = NORMAL
+    else:
+
+        try:
+            make_ect_project()
+            copy_localize()
+            modified_execinfo_file()
+            run_exec_Info_file()
+
+            tkMessageBox.showinfo("info","执行完毕")
+
+        except Exception as e:
+            tkMessageBox.showinfo("warning","内部有个Bug没有解决，请关闭本程序，再执行就OK了\n（创建新的ECT工程时，第一次执行本程序，总会报错）")
+
 if __name__ == '__main__':
+    master = Tk()
+    master.title("Localize自动化工具")
+    master.geometry('600x150')
+    master.resizable(width=False, height=False)
 
-    make_ect_project()
+    e1_entry_var = StringVar()
+    e2_entry_var = StringVar()
+    e3_entry_var = StringVar()
+    e4_entry_var = StringVar()
 
-    copy_localize()
+    Label(master, text="Localize_KM_Path：").grid(sticky=E)
+    Label(master, text="Src_Model_Path：").grid(sticky=E)
+    Label(master, text="ECT_Project_Name：").grid(sticky=E)
+    Label(master, text="ECT_File_Name：").grid(sticky=E)
 
-    modified_execinfo_file()
+    e1_entry_var.set(r'F:\Localize_Base\20171206')
+    e2_entry_var.set(r'F:\WinDrv_Src\IT5_Color_v4.2\KMSrc_2.06.73\Driver\Model')
+    e3_entry_var.set(r'IT5Color_v4.2_FVT-1Re_ECT')
+    e4_entry_var.set(r'IT5Color_v4.2.ECT')
 
-    run_exec_Info_file()
+    e1 = Entry(master, width='60', textvariable = e1_entry_var)
+    e2 = Entry(master, width='60', textvariable = e2_entry_var)
+    e3 = Entry(master, width='60', textvariable = e3_entry_var)
+    e4 = Entry(master, width='60', textvariable = e4_entry_var)
+
+    e1.grid(row=0, column=1)
+    e2.grid(row=1, column=1)
+    e3.grid(row=2, column=1)
+    e4.grid(row=3, column=1)
+
+    button1 = Button(master, text='reset', width = 10, command=reset)
+    button1.grid(row=4, column=0)
+
+    button2 = Button(master, text='GO', width = 10, command=getvalueforgui)
+    button2.grid(row=4, column=1)
+
+    mainloop()
+
+    # make_ect_project()
+
+    # copy_localize()
+
+    # modified_execinfo_file()
+
+    # run_exec_Info_file()
