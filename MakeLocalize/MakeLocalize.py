@@ -3,7 +3,7 @@
 #! python27
 # 制作Localize的自动化工具，减少重复的操作（每次都要做一次）
 #
-import os, re, time, shutil, distutils.dir_util
+import os, re, time, distutils.dir_util, pprint, json
 
 import win32process, win32event
 import win32api
@@ -15,13 +15,14 @@ from Tkinter import *
 _author_  = "YanBin"
 _version_ = "ver1.0"
 
+_consultant_ = "zhanglin"
+
 ################################
 # 输入一下信息
 # · ECT文件名名称
 # · ECT文件名称 （例：路径后面的名称[F:\IT5Color_v4.2_FVT-1Re_ECT\C759_11\IT5Color_v4.2.ECT]）
 # · 代码路径（Model）
 # · 日本给的localize路径
-# 读这儿： 第一次执行会报错， 只需要再次执行就OK了
 ################################
 # localize_from_km = ur'F:\Localize_Base\20171206'
 # src_model_folder = ur'F:\WinDrv_Src\IT5_Color_v4.2\KMSrc_2.06.73\Driver\Model'
@@ -33,10 +34,6 @@ src_model_folder = ''
 localize_from_km = ''
 SCCopy_folder = ''
 Base_ECT = ''
-
-################################
-# 读这儿： 第一次执行会报错， 只需要再次执行就OK了
-################################
 
 """
                    _ooOoo_ 
@@ -72,12 +69,11 @@ def make_ect_project():
     global own_folder
     global gen_folder
     FTuple = os.listdir(src_model_folder)
-    folder_re = re.compile('.*[FA|PKI]')
 
     # 获取Own和Gen的model名称
     for f in FTuple:
         f_path = os.path.join(src_model_folder, f)
-        if os.path.isdir(f_path) and not folder_re.search(f):
+        if os.path.isdir(f_path) and not 'FA' in f_path and not 'PKI' in f_path:
             if '-' in f :
                 gen_folder = f
             else:
@@ -104,25 +100,28 @@ def make_ect_project():
         elif 'PKI' in f:
             newFName = own_folder + 'PKI'
 
-        os.rename(os.path.join(ECT_folder, f), os.path.join(ECT_folder, newFName))
+        if not newFName == '' :
+            os.rename(os.path.join(ECT_folder, f), os.path.join(ECT_folder, newFName))
 
-        for sf in os.listdir(os.path.join(ECT_folder, newFName)):
-            if '.ECT' in sf:
-                os.rename(os.path.join(ECT_folder, newFName, sf), os.path.join(ECT_folder, newFName, ECT_file))
-                # break
-            elif 'INI' == sf:
-                shutil.rmtree(os.path.join(ECT_folder, newFName, 'INI'))
+            for sf in os.listdir(os.path.join(ECT_folder, newFName)):
+                if '.ECT' in sf:
+                    os.rename(os.path.join(ECT_folder, newFName, sf), os.path.join(ECT_folder, newFName, ECT_file))
+                    # break
+                elif 'INI' == sf:
+                    # shutil.rmtree(os.path.join(ECT_folder, newFName, 'INI')) // 必须用distutils.dir_util.remove_tree方法，不然执行copy_tree的时候会报错
+                    distutils.dir_util.remove_tree(os.path.join(ECT_folder, newFName, 'INI'))
 
     # 删除文件内容（Reference， Target）
     delFolder_re = re.compile('Reference|Target', re.I)
+    # delFolder_re = re.compile('Reference', re.I)
     for root, dirs, files in os.walk(SCCopy_folder):
         for dirf in dirs:
             # print dirf
             if delFolder_re.search(dirf):
                 for df in os.listdir(os.path.join(root, dirf)):
                     if os.path.isdir(os.path.join(root, dirf, df)):
-                        shutil.rmtree(os.path.join(root, dirf, df))
-                # print root + ":" + dirf
+                        # shutil.rmtree(os.path.join(root, dirf, df))
+                        distutils.dir_util.remove_tree(os.path.join(root, dirf, df))
 
 # 添加新的localize进入工具
 def copy_localize():
@@ -131,21 +130,26 @@ def copy_localize():
         if 'own' in f.lower():
             for sf in os.listdir(os.path.join(localize_from_km, f)):
                 if r'printer' in sf.lower():
-                    distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, 'Sample_OWN', '1_Printer', 'Target'))
+                    distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, r'Sample_OWN', r'1_Printer', r'Target'))
+                    distutils.file_util.copy_file(os.path.join(SCCopy_folder, r'Sample_OWN', r'1_Printer', r'Reference', r'ModelInfo.ini'), os.path.join(ECT_folder, own_folder, r'ModelInfo.ini'))
                 elif r'fax' in sf.lower():
-                    distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, 'Sample_OWN', '2_Fax', 'Target'))
+                    distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, r'Sample_OWN', r'2_Fax', r'Target'))
+                    distutils.file_util.copy_file(os.path.join(SCCopy_folder, r'Sample_OWN', r'2_Fax', r'Reference', r'ModelInfo.ini'), os.path.join(ECT_folder, own_folder + 'FA', r'ModelInfo.ini'))
 
         if 'gen' in f.lower():
             for sf in os.listdir(os.path.join(localize_from_km, f)):
                 if r'printer' in sf.lower():
-                    distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, 'Sample_GEN', '1_Printer', 'Target'))
+                    distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, r'Sample_GEN', r'1_Printer', r'Target'))
+                    distutils.file_util.copy_file(os.path.join(SCCopy_folder, r'Sample_GEN', r'1_Printer', r'Reference', r'ModelInfo.ini'), os.path.join(ECT_folder, gen_folder, r'ModelInfo.ini'))
                 elif r'fax' in sf.lower():
                     distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, r'Sample_GEN', r'2_Fax', r'Target'))
+                    distutils.file_util.copy_file(os.path.join(SCCopy_folder, r'Sample_GEN', r'2_Fax', r'Reference', r'ModelInfo.ini'), os.path.join(ECT_folder, gen_folder + 'FA', r'ModelInfo.ini'))
 
         if 'pki' in f.lower():
             for sf in os.listdir(os.path.join(localize_from_km, f)):
                 if 'printer' in sf.lower():
-                    distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, 'Sample_PKI', '1_Printer', 'Target'))
+                    distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, r'Sample_PKI', r'1_Printer', r'Target'))
+                    distutils.file_util.copy_file(os.path.join(SCCopy_folder, r'Sample_PKI', r'2_Fax', r'Reference', r'ModelInfo.ini'), os.path.join(ECT_folder, own_folder + 'PKI', r'ModelInfo.ini'))
 
     # 工程内部的localize放入Reference文件夹中
     # 把代码中INI所有文件复制到了ECT工程中，但是里面的pcl，ps，xps部分，不是我们想要的，所有我们要找到并删除它们
@@ -157,30 +161,30 @@ def copy_localize():
             pdl_re = re.compile('pcl|ps|xps', re.I)
 
             if own_folder == f:
-                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, 'Sample_OWN', '1_Printer', 'Reference'))
-                for sf in os.listdir(os.path.join(SCCopy_folder, 'Sample_OWN', '1_Printer', 'Reference')):
+                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, r'Sample_OWN', r'1_Printer', r'Reference'))
+                for sf in os.listdir(os.path.join(SCCopy_folder, r'Sample_OWN', r'1_Printer', r'Reference')):
                     if pdl_re.search(sf):
-                        shutil.rmtree(os.path.join(SCCopy_folder, 'Sample_OWN', '1_Printer', 'Reference', sf))
+                        distutils.dir_util.remove_tree(os.path.join(SCCopy_folder, r'Sample_OWN', r'1_Printer', r'Reference', sf))
             elif '%s%s' % (own_folder, 'FA') == f:
-                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, 'Sample_OWN', '2_Fax', 'Reference'))
-                for sf in os.listdir(os.path.join(SCCopy_folder, 'Sample_OWN', '2_Fax', 'Reference')):
+                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, r'Sample_OWN', r'2_Fax', r'Reference'))
+                for sf in os.listdir(os.path.join(SCCopy_folder, r'Sample_OWN', r'2_Fax', r'Reference')):
                     if pdl_re.search(sf):
-                        shutil.rmtree(os.path.join(SCCopy_folder, 'Sample_OWN', '2_Fax', 'Reference', sf))
+                        distutils.dir_util.remove_tree(os.path.join(SCCopy_folder, r'Sample_OWN', r'2_Fax', r'Reference', sf))
             elif gen_folder == f:
-                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, 'Sample_GEN', '1_Printer', 'Reference'))
-                for sf in os.listdir(os.path.join(SCCopy_folder, 'Sample_GEN', '1_Printer', 'Reference')):
+                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, 'Sample_GEN', r'1_Printer', r'Reference'))
+                for sf in os.listdir(os.path.join(SCCopy_folder, r'Sample_GEN', r'1_Printer', r'Reference')):
                     if pdl_re.search(sf):
-                        shutil.rmtree(os.path.join(SCCopy_folder, 'Sample_GEN', '1_Printer', 'Reference', sf))
+                        distutils.dir_util.remove_tree(os.path.join(SCCopy_folder, r'Sample_GEN', r'1_Printer', r'Reference', sf))
             elif '%s%s' % (gen_folder, 'FA') == f:
-                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, 'Sample_GEN', '2_Fax', 'Reference'))
-                for sf in os.listdir(os.path.join(SCCopy_folder, 'Sample_GEN', '2_Fax', 'Reference')):
+                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, r'Sample_GEN', r'2_Fax', r'Reference'))
+                for sf in os.listdir(os.path.join(SCCopy_folder, r'Sample_GEN', r'2_Fax', r'Reference')):
                     if pdl_re.search(sf):
-                        shutil.rmtree(os.path.join(SCCopy_folder, 'Sample_GEN', '2_Fax', 'Reference', sf))
+                        distutils.dir_util.remove_tree(os.path.join(SCCopy_folder, r'Sample_GEN', r'2_Fax', r'Reference', sf))
             elif '%s%s' % (own_folder, 'PKI') == f:
-                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, 'Sample_PKI', '1_Printer', 'Reference'))
-                for sf in os.listdir(os.path.join(SCCopy_folder, 'Sample_PKI', '1_Printer', 'Reference')):
+                distutils.dir_util.copy_tree(fsrc, os.path.join(SCCopy_folder, r'Sample_PKI', r'1_Printer', r'Reference'))
+                for sf in os.listdir(os.path.join(SCCopy_folder, r'Sample_PKI', r'1_Printer', r'Reference')):
                     if pdl_re.search(sf):
-                        shutil.rmtree(os.path.join(SCCopy_folder, 'Sample_PKI', '1_Printer', 'Reference', sf))
+                        distutils.dir_util.remove_tree(os.path.join(SCCopy_folder, r'Sample_PKI', r'1_Printer', r'Reference', sf))
 
 # 修改文件[ExecInfo***.ini]里面的路径
 def modified_execinfo_file():
@@ -275,7 +279,7 @@ def run_exec_Info_file():
 
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['own']['printer']), os.path.join(ECT_folder, own_folder, 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, own_folder, 'INI', '_Log')):
-                        shutil.rmtree(os.path.join(ECT_folder, own_folder, 'INI', '_Log'))
+                        distutils.dir_util.remove_tree(os.path.join(ECT_folder, own_folder, 'INI', '_Log'))
                     run_ect_tool(os.path.join(ECT_folder, own_folder, ECT_file) + ' 1')
 
                 elif r'fax' in sf.lower():
@@ -283,7 +287,7 @@ def run_exec_Info_file():
 
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['own']['fax']), os.path.join(ECT_folder, own_folder + 'FA', 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, own_folder + 'FA', 'INI', '_Log')):
-                        shutil.rmtree(os.path.join(ECT_folder, own_folder + 'FA', 'INI', '_Log'))
+                        distutils.dir_util.remove_tree(os.path.join(ECT_folder, own_folder + 'FA', 'INI', '_Log'))
                     run_ect_tool(os.path.join(ECT_folder, own_folder + 'FA', ECT_file) + ' 1')
 
         if 'gen' in f.lower():
@@ -293,7 +297,7 @@ def run_exec_Info_file():
 
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['gen']['printer']), os.path.join(ECT_folder, gen_folder, 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, gen_folder, 'INI', '_Log')):
-                        shutil.rmtree(os.path.join(ECT_folder, gen_folder, 'INI', '_Log'))
+                        distutils.dir_util.remove_tree(os.path.join(ECT_folder, gen_folder, 'INI', '_Log'))
                     run_ect_tool(os.path.join(ECT_folder, gen_folder, ECT_file) + ' 1')
 
                 elif r'fax' in sf.lower():
@@ -301,7 +305,7 @@ def run_exec_Info_file():
 
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['gen']['fax']), os.path.join(ECT_folder, gen_folder + 'FA', 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, gen_folder + 'FA', 'INI', '_Log')):
-                        shutil.rmtree(os.path.join(ECT_folder, gen_folder + 'FA', 'INI', '_Log'))
+                        distutils.dir_util.remove_tree(os.path.join(ECT_folder, gen_folder + 'FA', 'INI', '_Log'))
                     run_ect_tool(os.path.join(ECT_folder, gen_folder + 'FA', ECT_file) + ' 1')
 
         if 'pki' in f.lower():
@@ -311,7 +315,7 @@ def run_exec_Info_file():
 
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['pki']['printer']), os.path.join(ECT_folder, own_folder + 'PKI', 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, own_folder + 'PKI', 'INI', '_Log')):
-                        shutil.rmtree(os.path.join(ECT_folder, own_folder + 'PKI', 'INI', '_Log'))
+                        distutils.dir_util.remove_tree(os.path.join(ECT_folder, own_folder + 'PKI', 'INI', '_Log'))
                     run_ect_tool(os.path.join(ECT_folder, own_folder + 'PKI', ECT_file) + ' 1')
 
 def reset():
@@ -346,14 +350,6 @@ def checkinfo():
         tkMessageBox.showinfo("warning","缺少执行文件[RunTool.exe]\n确保该文件和MakeLocalize.exe处于同目录")
         button2['state'] = NORMAL
         return 0
-
-    # path_re = re.compile(r".*\\\d.*")
-    # # print Base_ECT
-    # print path_re.search('F:\python\0IT5Color_v4.1_FVT-0_ECT')
-    # if path_re.search(src_model_folder) or path_re.search(Base_ECT):
-    #     tkMessageBox.showinfo("warning","请确认文件夹名称前面是否有数字")
-    #     button2['state'] = NORMAL
-    #     return 0
 
     fa_count = 0
     for f in os.listdir(Base_ECT):
@@ -392,10 +388,14 @@ def getvalueforgui():
     if not checkinfo():
         return
 
-    # if ECT_folder == '' or ECT_file == '' or src_model_folder == '' or localize_from_km == '':
-    #     tkMessageBox.showinfo("warning","每项信息都必须正确填写！不能为空")
-    #     button2['state'] = NORMAL
-    # else:
+    # 保存输入信息
+    data = {'Base_ECT': Base_ECT,
+         'ECT_file': ECT_file,
+         'ECT_folder': ECT_folder,
+         'localize_from_km': localize_from_km,
+         'src_model_folder': src_model_folder}
+    with open(inputInfoFile, 'w') as f:
+        json.dump(data, f)
 
     try:
         make_ect_project()
@@ -404,14 +404,25 @@ def getvalueforgui():
         run_exec_Info_file()
 
         tkMessageBox.showinfo("info","执行完毕")
-        # button2['state'] = NORMAL
 
+        button2['state'] = NORMAL
     except Exception as e:
-        tkMessageBox.showinfo("warning","内部有个Bug没有解决，请关闭本程序，再执行就OK了\n（创建新的ECT工程时，第一次执行本程序，总会报错）")
+        tkMessageBox.showinfo("warning","内部发生错误，请重试！\n如果还发生，请联系管理员。")
 
 if __name__ == '__main__':
+
+    inputInfoFile = os.path.join(os.getcwd(), 'inputInfo.py')
+    if not os.path.exists(inputInfoFile) :
+        data = {'Base_ECT': 'F:\\Base_ECT\\WorkplaceHub_FVT-2_Reg',
+                 'ECT_file': 'WorkplaceHub.ECT',
+                 'ECT_folder': 'F:\\Base_ECT\\WorkplaceHub_MR_ECT',
+                 'localize_from_km': 'F:\\Localize_Base\\WPH\\20171225',
+                 'src_model_folder': 'F:\\WinDrv_Src\\WorkplaceHub\\KMSrc_2.06.62-0.04-0.04\\Driver\\Model'}
+        with open(inputInfoFile, 'w') as f:
+            json.dump(data, f)
+
     master = Tk()
-    master.title("Localize自动化工具")
+    master.title("Localize自动化工具  by YanBin")
     master.geometry('600x180')
     master.resizable(width=False, height=False)
 
@@ -427,11 +438,14 @@ if __name__ == '__main__':
     Label(master, text="ECT_File_Name：").grid(sticky=E)
     Label(master, text="ECT_Base_Path：").grid(sticky=E)
 
-    e1_entry_var.set(r'F:\Localize_Base\20171206')
-    e2_entry_var.set(r'F:\WinDrv_Src\IT5_Color_v4.2\KMSrc_2.06.73\Driver\Model')
-    e3_entry_var.set(r'IT5Color_v4.2_FVT-1Re_ECT')
-    e4_entry_var.set(r'IT5Color_v4.2.ECT')
-    e5_entry_var.set(r'F:\Base_ECT\IT5Color_v4.1_FVT-0_ECT')
+    with open(inputInfoFile, 'r') as f:
+        input_info = json.load(f)
+
+    e1_entry_var.set(input_info['localize_from_km'])
+    e2_entry_var.set(input_info['src_model_folder'])
+    e3_entry_var.set(input_info['ECT_folder'])
+    e4_entry_var.set(input_info['ECT_file'])
+    e5_entry_var.set(input_info['Base_ECT'])
 
     e1 = Entry(master, width='60', textvariable = e1_entry_var)
     e2 = Entry(master, width='60', textvariable = e2_entry_var)
