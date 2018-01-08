@@ -83,7 +83,7 @@ def make_ect_project():
     if not os.path.exists(ECT_folder):
         distutils.dir_util.copy_tree(Base_ECT, ECT_folder)
 
-    # 更改文件夹名os.path.isdir(os.path.join(root, dirf, df))
+    # 更改文件夹名
     newFName = ''
     for f in os.listdir(ECT_folder):
         if f in ['bin', 'SCCopy', 'Setting'] or not os.path.isdir(os.path.join(ECT_folder, f)):
@@ -149,7 +149,7 @@ def copy_localize():
             for sf in os.listdir(os.path.join(localize_from_km, f)):
                 if 'printer' in sf.lower():
                     distutils.dir_util.copy_tree(os.path.join(localize_from_km, f, sf, r'INI'), os.path.join(SCCopy_folder, r'Sample_PKI', r'1_Printer', r'Target'))
-                    distutils.file_util.copy_file(os.path.join(SCCopy_folder, r'Sample_PKI', r'2_Fax', r'Reference', r'ModelInfo.ini'), os.path.join(ECT_folder, own_folder + 'PKI', r'ModelInfo.ini'))
+                    distutils.file_util.copy_file(os.path.join(SCCopy_folder, r'Sample_PKI', r'1_Printer', r'Reference', r'ModelInfo.ini'), os.path.join(ECT_folder, own_folder + 'PKI', r'ModelInfo.ini'))
 
     # 工程内部的localize放入Reference文件夹中
     # 把代码中INI所有文件复制到了ECT工程中，但是里面的pcl，ps，xps部分，不是我们想要的，所有我们要找到并删除它们
@@ -391,23 +391,23 @@ def getvalueforgui():
     # 保存输入信息
     data = {'Base_ECT': Base_ECT,
          'ECT_file': ECT_file,
-         'ECT_folder': ECT_folder,
+         'ECT_folder': e3.get(),
          'localize_from_km': localize_from_km,
          'src_model_folder': src_model_folder}
     with open(inputInfoFile, 'w') as f:
         json.dump(data, f)
 
-    try:
-        make_ect_project()
-        copy_localize()
-        modified_execinfo_file()
-        run_exec_Info_file()
+    # try:
+    make_ect_project()
+    copy_localize()
+    modified_execinfo_file()
+    run_exec_Info_file()
 
-        tkMessageBox.showinfo("info","执行完毕")
+    tkMessageBox.showinfo("info","执行完毕")
 
-        button2['state'] = NORMAL
-    except Exception as e:
-        tkMessageBox.showinfo("warning","内部发生错误，请重试！\n如果还发生，请联系管理员。")
+    button2['state'] = NORMAL
+    # except Exception as e:
+    #     tkMessageBox.showinfo("warning","内部发生错误，请重试！\n如果还发生，请联系管理员。")
 
 if __name__ == '__main__':
 
@@ -415,7 +415,7 @@ if __name__ == '__main__':
     if not os.path.exists(inputInfoFile) :
         data = {'Base_ECT': 'F:\\Base_ECT\\WorkplaceHub_FVT-2_Reg',
                  'ECT_file': 'WorkplaceHub.ECT',
-                 'ECT_folder': 'F:\\Base_ECT\\WorkplaceHub_MR_ECT',
+                 'ECT_folder': 'WorkplaceHub_MR_ECT',
                  'localize_from_km': 'F:\\Localize_Base\\WPH\\20171225',
                  'src_model_folder': 'F:\\WinDrv_Src\\WorkplaceHub\\KMSrc_2.06.62-0.04-0.04\\Driver\\Model'}
         with open(inputInfoFile, 'w') as f:
