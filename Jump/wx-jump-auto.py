@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 #!/usr/bin/env python
-import pymouse, time, pyHook, pythoncom, aircv, math, random, sys
+import pymouse, time, pyHook, pythoncom, aircv, math, sys
 
 import aircv, pymouse
 import pyscreenshot as ImageGrab
@@ -57,9 +57,7 @@ def onKeyboardEvent(event):
             dis = int(math.sqrt(math.pow(start_pos[0]-end_pos[0],2)+math.pow(start_pos[1]-end_pos[1],2)))
             times = round((dis / 0.3) / 1000 , 3) 
             if dis < 500:
-                print '>> ', dis, times
-                x = random.randint(50, 400)
-                y = random.randint(400, 700)
+                print '>> ', times
                 m.press(end_pos[0], end_pos[1])
                 time.sleep(times)
                 m.release(end_pos[0], end_pos[1])
