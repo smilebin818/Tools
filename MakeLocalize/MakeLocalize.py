@@ -280,7 +280,7 @@ def run_exec_Info_file():
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['own']['printer']), os.path.join(ECT_folder, own_folder, 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, own_folder, 'INI', '_Log')):
                         distutils.dir_util.remove_tree(os.path.join(ECT_folder, own_folder, 'INI', '_Log'))
-                    run_ect_tool(os.path.join(ECT_folder, own_folder, ECT_file) + ' 1')
+                    run_ect_tool(os.path.join(ECT_folder, own_folder, ECT_file) + ' 1' + ' ' + own_folder)
 
                 elif r'fax' in sf.lower():
                     run_sccopy_tool(os.path.join(SCCopy_folder, 'Tool'), os.path.join(SCCopy_folder, ini_file['own']['fax']) + ' 0')
@@ -288,7 +288,7 @@ def run_exec_Info_file():
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['own']['fax']), os.path.join(ECT_folder, own_folder + 'FA', 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, own_folder + 'FA', 'INI', '_Log')):
                         distutils.dir_util.remove_tree(os.path.join(ECT_folder, own_folder + 'FA', 'INI', '_Log'))
-                    run_ect_tool(os.path.join(ECT_folder, own_folder + 'FA', ECT_file) + ' 1')
+                    run_ect_tool(os.path.join(ECT_folder, own_folder + 'FA', ECT_file) + ' 1' + ' ' + own_folder + 'FA')
 
         if 'gen' in f.lower():
             for sf in os.listdir(os.path.join(localize_from_km, f)):
@@ -298,7 +298,7 @@ def run_exec_Info_file():
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['gen']['printer']), os.path.join(ECT_folder, gen_folder, 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, gen_folder, 'INI', '_Log')):
                         distutils.dir_util.remove_tree(os.path.join(ECT_folder, gen_folder, 'INI', '_Log'))
-                    run_ect_tool(os.path.join(ECT_folder, gen_folder, ECT_file) + ' 1')
+                    run_ect_tool(os.path.join(ECT_folder, gen_folder, ECT_file) + ' 1' + ' ' + gen_folder)
 
                 elif r'fax' in sf.lower():
                     run_sccopy_tool(os.path.join(SCCopy_folder, 'Tool'), os.path.join(SCCopy_folder, ini_file['gen']['fax']) + ' 0')
@@ -306,7 +306,7 @@ def run_exec_Info_file():
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['gen']['fax']), os.path.join(ECT_folder, gen_folder + 'FA', 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, gen_folder + 'FA', 'INI', '_Log')):
                         distutils.dir_util.remove_tree(os.path.join(ECT_folder, gen_folder + 'FA', 'INI', '_Log'))
-                    run_ect_tool(os.path.join(ECT_folder, gen_folder + 'FA', ECT_file) + ' 1')
+                    run_ect_tool(os.path.join(ECT_folder, gen_folder + 'FA', ECT_file) + ' 1' + ' ' + gen_folder + 'FA')
 
         if 'pki' in f.lower():
             for sf in os.listdir(os.path.join(localize_from_km, f)):
@@ -316,7 +316,7 @@ def run_exec_Info_file():
                     distutils.dir_util.copy_tree(os.path.join(SCCopy_folder, target_file['pki']['printer']), os.path.join(ECT_folder, own_folder + 'PKI', 'INI'))
                     if os.path.exists(os.path.join(ECT_folder, own_folder + 'PKI', 'INI', '_Log')):
                         distutils.dir_util.remove_tree(os.path.join(ECT_folder, own_folder + 'PKI', 'INI', '_Log'))
-                    run_ect_tool(os.path.join(ECT_folder, own_folder + 'PKI', ECT_file) + ' 1')
+                    run_ect_tool(os.path.join(ECT_folder, own_folder + 'PKI', ECT_file) + ' 1' + ' ' + own_folder + 'PKI')
 
 def reset():
     e1_entry_var.set('')
@@ -397,27 +397,30 @@ def getvalueforgui():
     with open(inputInfoFile, 'w') as f:
         json.dump(data, f)
 
-    # try:
-    make_ect_project()
-    copy_localize()
-    modified_execinfo_file()
-    run_exec_Info_file()
+    try:
+        # 重置全局变量（当程序在运行时，删除了文件夹再次点击运行会出错）
+        distutils.dir_util._path_created = {}
 
-    tkMessageBox.showinfo("info","执行完毕")
+        make_ect_project()
+        copy_localize()
+        modified_execinfo_file()
+        run_exec_Info_file()
 
-    button2['state'] = NORMAL
-    # except Exception as e:
-    #     tkMessageBox.showinfo("warning","内部发生错误，请重试！\n如果还发生，请联系管理员。")
+        tkMessageBox.showinfo("info","执行完毕")
+
+        button2['state'] = NORMAL
+    except Exception as e:
+        tkMessageBox.showinfo("warning","内部发生错误，请关闭软件再打开试试！\n如果还发生，请联系管理员。")
 
 if __name__ == '__main__':
 
     inputInfoFile = os.path.join(os.getcwd(), 'inputInfo.py')
     if not os.path.exists(inputInfoFile) :
-        data = {'Base_ECT': 'F:\\Base_ECT\\WorkplaceHub_FVT-2_Reg',
-                 'ECT_file': 'WorkplaceHub.ECT',
-                 'ECT_folder': 'WorkplaceHub_MR_ECT',
-                 'localize_from_km': 'F:\\Localize_Base\\WPH\\20171225',
-                 'src_model_folder': 'F:\\WinDrv_Src\\WorkplaceHub\\KMSrc_2.06.62-0.04-0.04\\Driver\\Model'}
+        data = {'Base_ECT': 'F:\\work\\work_Localize\\IT5Color_v4.2_FVT-2_ECT',
+                 'ECT_file': 'IT5Color_v4.2.ECT',
+                 'ECT_folder': 'IT5Color_v4.2_FVT-2Re_ECT',
+                 'localize_from_km': 'F:\\Localize_Base\\Color\\20180126',
+                 'src_model_folder': 'F:\\WinDrv_Src\\IT5_Color_v4.2\\KMSrc_2.06.73-0.03\\Driver\\Model'}
         with open(inputInfoFile, 'w') as f:
             json.dump(data, f)
 

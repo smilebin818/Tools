@@ -6,6 +6,8 @@
 #include <MsgBoxConstants.au3>
 #include <WindowsConstants.au3>
 #include <WinAPI.au3>
+#include <file.au3>
+
 
 Global $TITLE_VER = "ShortcutCopyTool - v0.1"
 Global $Author    = "YanBin"
@@ -17,12 +19,17 @@ Global $Author    = "YanBin"
 $PATH =$CmdLine[1]
 $FUN  =$CmdLine[2]
 
+$sLogPath = @ScriptDir & "\my.log"
+
 Local $hWnd
 
 If $FUN == 0 Then
     _RunSCCopyTool()
 Else
+    $RUNF  =$CmdLine[3]
+    _FileWriteLog($sLogPath, "开始:     " & $RUNF)
     _RunECTTool()
+    _FileWriteLog($sLogPath, "结束:     " & $RUNF)
 EndIF
 
 
@@ -83,19 +90,38 @@ Func _RunECTTool()
     EndIf
 
     Send("!fo")
-    WinWaitActive("[CLASS:#32770]")
+    ; WinWaitActive("[CLASS:#32770]")
+
+    ; $WS = 1
+    ; While $WS
+    ;     If WinExists("[CLASS:#32770]") Then
+    ;         $WS = 0
+    ;         WinWaitActive("[CLASS:#32770]")
+    ;     EndIf
+    ; WEnd
 
     $WS = 1
     While $WS
-        If WinExists("[CLASS:#32770]") Then
+        If WinExists("ファイルを開く") Then
+            WinWaitActive("ファイルを開く")
+            _FileWriteLog($sLogPath, "ECT 选择:     -开始")
             $WS = 0
-            WinWaitActive("[CLASS:#32770]")
+         EndIf
+    WEnd
+
+    $WS = 1
+    ; _FileWriteLog($sLogPath, "ECT 路径:" & ControlGetText("ファイルを開く", "", "Edit1"))
+    While $WS
+        If ControlGetText("ファイルを開く", "", "Edit1") == "" Then
+            ControlSetText("ファイルを開く", "", "Edit1", $PATH)
+        Else
+            _FileWriteLog($sLogPath, "ECT 路径:" & ControlGetText("ファイルを開く", "", "Edit1"))
+            $WS = 0
         EndIf
     WEnd
 
-    Local $hFileDlgWnd = WinGetHandle("[CLASS:#32770]")
-    ControlSetText($hFileDlgWnd, "", "Edit1", $PATH)
     Send("!o")
+    _FileWriteLog($sLogPath, "ECT 选择:     -结束")
 
     Local $hWnd = _WinGetHandleByPnmAndCls("ECT.exe")
     If Not $hWnd Then
@@ -115,6 +141,20 @@ Func _RunECTTool()
             ControlSend("ECT", "No driver will", "Button1", "{SPACE}")
             Send("!c")
             Send("!u")
+        Else
+            If WinExists("ファイルを開く") Then
+                WinWaitActive("ファイルを開く")
+
+                _FileWriteLog($sLogPath, "ECT 选择:     -开始2")
+
+                ControlSetText("ファイルを開く", "", "Edit1", $PATH)
+                _FileWriteLog($sLogPath, "ECT 路径:" & ControlGetText("ファイルを開く", "", "Edit1"))
+                _FileWriteLog($sLogPath, "ECT 选择:     -结束2")
+                
+                Send("!o")
+                Send("!c")
+                Send("!u")
+            EndIf
         EndIf
     WEnd
 
@@ -142,25 +182,39 @@ Func _RunECTTool()
         $WS = 1
         While $WS
             If WinExists($hWnd) Then
-                $WS = 0
+                
                 WinWaitActive($hWnd)
+                Send("!fx")
+
+                $WE = 1
+                While $WE
+                    $hWnd = _WinGetHandleByPnmAndCls("ECT.exe")
+                    If WinExists($hWnd) Then
+                        If WinExists("ECT", "Current project") Then
+                            Send("!y")
+                        EndIf
+                    Else
+                        $WE = 0
+                    EndIf
+                WEnd
+                $WS = 0
             Else
                 $hWnd = _WinGetHandleByPnmAndCls("ECT.exe")
             EndIf
         WEnd
-        Send("!fx")
+        ; Send("!fx")
 
-        $WS = 1
-        While $WS
-            $hWnd = _WinGetHandleByPnmAndCls("ECT.exe")
-            If WinExists($hWnd) Then
-                If WinExists("ECT", "Current project") Then
-                    Send("!y")
-                EndIf
-            Else
-                $WS = 0
-            EndIf
-        WEnd
+        ; $WS = 1
+        ; While $WS
+        ;     $hWnd = _WinGetHandleByPnmAndCls("ECT.exe")
+        ;     If WinExists($hWnd) Then
+        ;         If WinExists("ECT", "Current project") Then
+        ;             Send("!y")
+        ;         EndIf
+        ;     Else
+        ;         $WS = 0
+        ;     EndIf
+        ; WEnd
     EndIf
 EndFunc
 
